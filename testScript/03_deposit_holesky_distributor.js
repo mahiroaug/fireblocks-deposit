@@ -3,8 +3,8 @@
 
   NOT USE FIREBLOCKS
 
-  usage:   node testScript/02_deposit_holesky.js <deposit.json>
-  example: node testScript/02_deposit_holesky.js sampleData/deposit_data-1697983601.json 
+  usage:   node testScript/03_deposit_holesky_distributor.js <deposit.json>
+  example: node testScript/03_deposit_holesky_distributor.js sampleData/deposit_data-1698056498.json
  
   */
 
