@@ -1,5 +1,5 @@
 /*
- execute deposit-contract via web3provider(localhost) with direct private_key
+ execute deposit-contract via web3provider(localhost) with direct private_key for multiple-deposits
 
   NOT USE FIREBLOCKS
 
