@@ -54,8 +54,18 @@ npx hardhat compile
 
 # 2. execute
 
+## ---- Holesky with local node(geth) -----
+
 - case1: direct deposit
 
 ```
 node testScript/02_deposit_holesky.js sampleData/deposit_data-xxxxxxxxxxx.json
+```
+
+
+
+- case2: deposit via distributor(batch router) for multiple-deposits at once
+
+```
+node testScript/03_deposit_holesky_distributor.js sampleData/deposit_data-xxxxx.json 
 ```

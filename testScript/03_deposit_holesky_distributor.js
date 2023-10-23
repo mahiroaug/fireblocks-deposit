@@ -113,11 +113,21 @@ async function readDepositJson(filename){
         console.log(`seriesData.length=${seriesData.length} (expected: 416 * ${count} = ${verifyLength}) verified!`);
         console.log("");
 
-        return data,seriesData;
+        return {
+            seriesData:seriesData,
+            count:count
+        };
 
     } catch (error) {
         console.error("Error reading or parsing the file:", error);
     }
+}
+
+
+async function sleepForSeconds(amount) {
+    console.log(`Sleeping for ${amount} seconds...`);
+    await new Promise(r => setTimeout(r, amount * 1000)); // milliseconds
+    console.log(`${amount} seconds have passed!`);
 }
 
 
@@ -189,44 +199,33 @@ const sendTx = async (_to ,_tx ,_signer,_gasLimit,_value) => {
  sendSeriesDeposit
   seriesData : json object(multiple deposit data)
   payer      : web3 object
+  count      : the number of multiple
 */
-async function sendDeposit(seriesData,payer){
+async function sendSeriesDeposit(paramJson,payer){
     try{
-        const tx = await distributor.methods.batchDeposit(
-            '0x' + seriesData
-        );
-        //const value = web3.utils.toWei("32",'ether') // 32ETH
-        const value = web3.utils.toWei(req.amount.toString(),'gwei');
+        // calc deadline
+        const now = new Date();
+        now.setDate(now.getDate() + 1);
+        const deadline = Math.floor(now.getTime() / 1000);
 
-        const receipt = await sendTx(DEPOSIT_CA,tx,payer,150000,value);
-        console.log("send Deposit");
+        // payload
+        const payload = '0x' + paramJson.seriesData;
+
+        // calc value (amount of send ETH)
+        const value = web3.utils.toWei("32",'ether') * paramJson.count; // 32ETH * count
+
+        // logging
+        console.log(`>>>>>> batchDeposit parameter`)
+        console.log("deadline: ",deadline);
+        console.log("payload: ", payload);
+        console.log("value: ",value);
+        console.log("");
         
-    } catch(error){
-        console.error('Error:', error);
-    }
-}
+        // execute
+        const tx = await distributor.methods.batchDeposit(deadline,payload);
+        const receipt = await sendTx(DISTRIBUTOR_CA,tx,payer,150000,value);
 
-
-
-/*
- sendDeposit
-  req   : json object
-  payer : web3 object
-*/
-async function sendDeposit(req,payer){
-    try{
-        const tx = await contract.methods.deposit(
-            '0x' + req.pubkey,
-            '0x' + req.withdrawal_credentials,
-            '0x' + req.signature,
-            '0x' + req.deposit_data_root
-        );
-        //const value = web3.utils.toWei("32",'ether') // 32ETH
-        const value = web3.utils.toWei(req.amount.toString(),'gwei');
-
-        const receipt = await sendTx(DEPOSIT_CA,tx,payer,150000,value);
-        console.log("send Deposit");
-        
+        console.log("send Deposit via Distributor");
     } catch(error){
         console.error('Error:', error);
     }
@@ -247,27 +246,20 @@ async function sendDeposit(req,payer){
     console.log("-------- IMPLEMENT ---------");
     console.log(`deposit contract address: ${DEPOSIT_CA}, verifying: ${web3.utils.isAddress(DEPOSIT_CA)}`);
 
-    let req;
+
     // read deposit.json
     console.log("-------- DEPOSIT.JSON ---------");
     const filename = process.argv[2];
     if (!filename) {
         console.error("Please provide a filename as an argument.");
         process.exit(1);
-    } else {
-        req,seriesData = await readDepositJson(filename);
     }
+    const paramJson = await readDepositJson(filename);
+    
+    console.log("-------- double check ---------");
+    console.log("seriesData: ",paramJson.seriesData);
+    console.log("count: ",paramJson.count);
 
-    /*
-    console.log("========== SGINER ==========");
-    const vaultAddr = await web3.eth.getAccounts();
-    const signerAddr = vaultAddr[0];
-    console.log('signer address: ',signerAddr);
-    const tc = await web3.eth.getTransactionCount(signerAddr);
-    console.log('transactionCount: ',tc);
-    console.log("-------- GET VALUE ---------");
-    await getAccountBalance(signerAddr);
-    */
 
     console.log("//////////////////////////////////////");
     console.log("/////////// STEP2 DEPOSIT ////////////");
@@ -284,10 +276,12 @@ async function sendDeposit(req,payer){
 
 
     console.log("========== DEPOSIT ==========");
-    //await sendDeposit(req,signer);
-    await sendSeriesDeposit(seriesData,signer);
+    await sendSeriesDeposit(paramJson,signer);
+    await sleepForSeconds(20);
 
 
+    console.log("-------- GET VALUE ---------");
+    await getAccountBalance(signer.address);
 
 })().catch(error => {
     console.log(error)
