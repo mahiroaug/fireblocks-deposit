@@ -51,6 +51,12 @@ npx hardhat compile
 
 - create deposit.json from staking-deposit.cli
 
+```
+## example
+
+./deposit new-mnemonic --num_validators 3 --chain holesky --execution_address <YOUR_RECIPIENT_ADDRESS>
+```
+
 
 # 2. execute
 
