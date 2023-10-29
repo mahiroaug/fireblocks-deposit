@@ -56,7 +56,7 @@ npx hardhat compile
 
 
 ```bash
-./deposit new-mnemonic --num_validators 3 --chain holesky --execution_address <YOUR_RECEIPIENT_ADDRESS>
+./deposit new-mnemonic --num_validators 3 --chain holesky --execution_address <YOUR_RECIPIENT_ADDRESS>
 ```
 
 
