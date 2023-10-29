@@ -28,7 +28,8 @@
 				"ms-vscode.js-debug-nightly",
 				"dotenv.dotenv-vscode",
 				"VisualStudioExptTeam.vscodeintellicode",
-				"mikestead.dotenv"
+				"mikestead.dotenv",
+				"GitHub.copilot"
 			]
 		}
 	}

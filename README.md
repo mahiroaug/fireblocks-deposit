@@ -41,20 +41,26 @@ FIREBLOCKS_ASSET_ID=ETH_TEST3
 - deployment `fireblocks_secret_SIGNER.key`
 
 
+
+
+
 # 1. setup
 
 - compile deposit-contract
 
-```
+```bash
 npx hardhat compile
 ```
 
 - create deposit.json from staking-deposit.cli
 
 
+```bash
+./deposit new-mnemonic --num_validators 3 --chain holesky --execution_address <YOUR_RECEIPIENT_ADDRESS>
 ```
-./deposit new-mnemonic --num_validators 3 --chain holesky --execution_address <YOUR_RECIPIENT_ADDRESS>
-```
+
+
+
 
 
 # 2. execute
@@ -63,14 +69,22 @@ npx hardhat compile
 
 - case1: direct deposit
 
-```
+```bash
 node testScript/02_deposit_holesky.js sampleData/deposit_data-xxxxxxxxxxx.json
 ```
+
+- case1b: direct deposit (custom amount for deposit)
+
+```bash
+node testScript/02_deposit_holesky.js sampleData/deposit_data-xxxxxxxxxxx.json <1~32>
+```
+
+`note that the amount except 32 is reverted from deposit_contract`
 
 
 
 - case2: deposit via distributor(batch router) for multiple-deposits at once
 
-```
+```bash
 node testScript/03_deposit_holesky_distributor.js sampleData/deposit_data-xxxxx.json 
 ```

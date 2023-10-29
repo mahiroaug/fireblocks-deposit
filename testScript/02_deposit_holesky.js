@@ -13,12 +13,14 @@
 require('dotenv').config({ path: '.env.common'});
 require('dotenv').config({ path: '.env.holesky'});
 
+const askUserQuestion = require('../util/userPrompt');
 const fs = require('fs');
 const path = require('path');
 const Web3 = require("web3");
 const { inspect } = require('util');
 const { FireblocksSDK, PeerType, TransactionOperation, TransactionStatus, Web3ConnectionFeeLevel } = require("fireblocks-sdk");
 const { FireblocksWeb3Provider, ChainId } = require("@fireblocks/fireblocks-web3-provider");
+const { Agent } = require('http');
 
 // -------------------COMMON----------------------- //
 //// common environment
@@ -157,7 +159,7 @@ const sendTx = async (_to ,_tx ,_signer,_gasLimit,_value) => {
   req   : json object
   payer : web3 object
 */
-async function sendDeposit(req,payer){
+async function sendDeposit(req,payer,custom_amount){
     try{
         const tx = await contract.methods.deposit(
             '0x' + req.pubkey,
@@ -165,11 +167,23 @@ async function sendDeposit(req,payer){
             '0x' + req.signature,
             '0x' + req.deposit_data_root
         );
-        //const value = web3.utils.toWei("32",'ether') // 32ETH
-        const value = web3.utils.toWei(req.amount.toString(),'gwei');
 
+        let value;
+        if(custom_amount == undefined){
+            value = web3.utils.toWei(req.amount.toString(),'gwei');
+        } else {
+            value = web3.utils.toWei(custom_amount.toString(), 'ether');
+        }
+        console.log("deposit_value: ",value);
+
+        if (!await askUserQuestion('(final check) continue deposit?')) {
+            console.log("exit");
+            process.exit(0);
+        }
+    
+        console.log("/////////// EXECUTE DEPOSIT TRANSACTION  //////////");
         const receipt = await sendTx(DEPOSIT_CA,tx,payer,150000,value);
-        console.log("send Deposit");
+        console.log("COMPLETE Deposit!!");
         
     } catch(error){
         console.error('Error:', error);
@@ -183,18 +197,34 @@ async function sendDeposit(req,payer){
 /////////////////////////////////////////
 
 (async() => {
-
+    const args = process.argv;
+    if(args.length>4){
+        console.log("too many arguments");
+        process.exit(1);
+    }
     
+
+    //-----------read deposit.json--------------------------//
     console.log("//////////////////////////////////////");
     console.log("/////////// STEP1 LOAD JSON //////////");
     console.log("//////////////////////////////////////");
     console.log("-------- IMPLEMENT ---------");
-    console.log(`deposit contract address: ${DEPOSIT_CA}, verifying: ${web3.utils.isAddress(DEPOSIT_CA)}`);
+
+    const deposit_ca_verify = web3.utils.isAddress(DEPOSIT_CA);
+    console.log(`deposit contract address: ${DEPOSIT_CA} verifying: ${deposit_ca_verify}`)
+    if(!deposit_ca_verify){
+        process.exit(1);
+    }
+    if (!await askUserQuestion('(1st check) continue deposit?')) {
+        console.log("exit");
+        process.exit(0);
+    }
 
     let req;
-    // read deposit.json
+    console.log("");
+    console.log("first argument: ",args[2]);
     console.log("-------- DEPOSIT.JSON ---------");
-    const filename = process.argv[2];
+    const filename = args[2];
     if (!filename) {
         console.error("Please provide a filename as an argument.");
         process.exit(1);
@@ -212,6 +242,41 @@ async function sendDeposit(req,payer){
     console.log(">>>>>> deposit_value [wei]")
     console.log("value                  :", web3.utils.toWei(req.amount.toString(),'gwei'))
 
+    if (!await askUserQuestion('(2nd check) continue deposit?')) {
+        console.log("exit");
+        process.exit(0);
+    }
+
+    //-----------custom value for deposit amount------------//
+    let custom_amount;
+    if(args.length==4) {
+        console.log("//////////////////////////////////////");
+        console.log("/////////// STEP1b CUSTOM VALUE //////");
+        console.log("//////////////////////////////////////");
+
+        console.log("second argument: ",args[3]);
+        custom_amount = Number(args[3]);
+        if(Number.isInteger(custom_amount) && custom_amount >=1 && custom_amount <=32) {
+            console.log(`cusom value = ${custom_amount} ETH`);
+        } else {
+            console.log("invalid amount(out of range at integer [1~32])");
+            process.exit(1);
+        }
+    } else {
+        console.log(`value = 32 ETH`);
+    }
+
+    if (!await askUserQuestion('(3rd check) continue deposit?')) {
+        console.log("exit");
+        process.exit(0);
+    }
+
+
+    //-----------deposit------------//
+    console.log("//////////////////////////////////////");
+    console.log("/////////// STEP2 DEPOSIT ////////////");
+    console.log("//////////////////////////////////////");
+
     /*
     console.log("========== SGINER ==========");
     const vaultAddr = await web3.eth.getAccounts();
@@ -223,9 +288,6 @@ async function sendDeposit(req,payer){
     await getAccountBalance(signerAddr);
     */
 
-    console.log("//////////////////////////////////////");
-    console.log("/////////// STEP2 DEPOSIT ////////////");
-    console.log("//////////////////////////////////////");
     console.log("========== SGINER ==========");
     const signer = web3.eth.accounts.privateKeyToAccount(process.env.ADDR_METAMASK_PRIVATE_KEY);
     web3.eth.accounts.wallet.add(signer)
@@ -238,8 +300,14 @@ async function sendDeposit(req,payer){
 
 
     console.log("========== DEPOSIT ==========");
-    await sendDeposit(req,signer);
+    if(custom_amount == undefined) {
+        await sendDeposit(req,signer);
+    } else {
+        await sendDeposit(req,signer,custom_amount);
 
+    }
+
+    return;
 
 
 
